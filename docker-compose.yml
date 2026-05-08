@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  postgres_2_main:
+    image: postgres:16-alpine
+    container_name: sportreg_postgres_2_main
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_2_data_main:/var/lib/postgresql/data
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: sportreg_backend_2_main
+    restart: unless-stopped
+    depends_on:
+      postgres_2_main:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8005:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: sportreg_frontend_2_main
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5180:80"
+
+volumes:
+  postgres_2_data_main:
